@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rank Tyler&#39;s Guitars</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an amp-panel top bar over a single working column; A/B are Sonic Blue and Candy Apple Red, the two oldest Fender custom colours. */
+:root {
+  --bg: #eceff1;
+  --surface: #ffffff;
+  --sunken: #e2e6ea;
+  --ink: #15181c;
+  --muted: #5b646e;
+  --line: #d3d9df;
+  --a: #2f7fb8;
+  --a-soft: #dcebf6;
+  --b: #be2a3a;
+  --b-soft: #f7dfe2;
+  --win: #2c7a4b;
+  --focus: #2f7fb8;
+  --panel: #15181c;
+  --panel-ink: #eceef0;
+  --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111315; --surface: #1a1d20; --sunken: #23272b; --ink: #eceef0; --muted: #9aa3ad; --line: #2e3338;
+    --a: #6cb2e2; --a-soft: #1b3346; --b: #e8596b; --b-soft: #432128; --win: #5cc28a; --focus: #6cb2e2; --panel: #08090a; --panel-ink: #eceef0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111315; --surface: #1a1d20; --sunken: #23272b; --ink: #eceef0; --muted: #9aa3ad; --line: #2e3338;
+  --a: #6cb2e2; --a-soft: #1b3346; --b: #e8596b; --b-soft: #432128; --win: #5cc28a; --focus: #6cb2e2; --panel: #08090a; --panel-ink: #eceef0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+body { font-family: var(--font-body); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.01em; line-height: 1; text-wrap: balance; margin: 0; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.label { font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+
+/* ── Top bar ─────────────────────────────────────── */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel); color: var(--panel-ink); border-bottom: 1px solid var(--line); }
+.bar-inner { max-width: 1180px; margin: 0 auto; padding-block: 10px; padding-inline: 16px; display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap; }
+.brand { font-family: var(--font-display); font-weight: 800; font-size: 24px; text-transform: uppercase; letter-spacing: 0.02em; text-decoration: none; color: inherit; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+.tab { background: none; border: 0; color: inherit; opacity: 0.72; padding: 6px 12px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 14px; text-decoration: none; }
+.tab:hover { opacity: 1; }
+.tab[aria-current="page"] { opacity: 1; background: color-mix(in srgb, var(--panel-ink) 16%, transparent); }
+
+main { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px; padding-inline: 16px; }
+.view { display: grid; gap: 24px; }
+.view-head { display: flex; align-items: end; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; }
+.view-head h1 { font-size: clamp(34px, 6vw, 56px); }
+.view-head p { margin: 6px 0 0; max-width: 62ch; color: var(--muted); }
+
+/* ── Collection ──────────────────────────────────── */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+.card { display: grid; grid-template-rows: auto 1fr; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; text-decoration: none; color: inherit; transition: transform .15s ease, border-color .15s ease; }
+.card:hover { transform: translateY(-2px); border-color: var(--muted); }
+.card img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: var(--sunken); }
+.card-body { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+.card-title { font-weight: 700; font-size: 16px; line-height: 1.25; }
+.card-sub { font-size: 13px; color: var(--muted); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-family: var(--font-mono); font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--sunken); color: var(--muted); white-space: nowrap; }
+.chip b { color: var(--ink); font-weight: 500; }
+.stats { display: flex; gap: 8px 20px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.stats b { color: var(--ink); font-family: var(--font-mono); font-weight: 500; }
+
+/* ── Detail ──────────────────────────────────────── */
+.back { color: var(--muted); text-decoration: none; font-weight: 600; font-size: 14px; justify-self: start; }
+.back:hover { color: var(--ink); }
+.detail { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 32px; align-items: start; }
+.detail-full { width: 100%; height: auto; border-radius: var(--radius); display: block; background: var(--sunken); }
+.detail-main { display: grid; gap: 28px; min-width: 0; }
+.detail-main h1 { font-size: clamp(36px, 5vw, 54px); }
+.detail-body { width: 100%; height: auto; border-radius: var(--radius); display: block; background: var(--sunken); }
+.specs { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px 24px; margin: 0; }
+.specs div { display: grid; gap: 2px; min-width: 0; }
+.specs dt { font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.specs dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.section-title { font-size: 24px; margin-bottom: 12px; }
+.pickups { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.pickups div { display: grid; grid-template-columns: 80px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.ranks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.rank-tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 2px; }
+.rank-tile .num { font-family: var(--font-display); font-weight: 800; font-size: 34px; line-height: 1; }
+.rank-tile .num small { font-size: 18px; color: var(--muted); }
+
+.samples { display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px 10px; align-items: center; }
+.samples .hdr { font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.samples .pos { font-weight: 600; padding-right: 8px; }
+.samples .pos small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.play { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; overflow: hidden; text-align: left; font-weight: 500; }
+.play:hover { border-color: var(--muted); }
+.play .prog { position: absolute; inset: auto 0 0 0; height: 3px; background: var(--a); transform-origin: left; transform: scaleX(0); }
+.play .ico { width: 14px; height: 14px; flex: none; }
+.play.on { border-color: var(--a); }
+
+/* ── Test (sound + looks) ────────────────────────── */
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.seg button:hover { border-color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.stage { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: clamp(16px, 3vw, 28px); display: grid; gap: 22px; }
+.stage-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; }
+.stage-head h2 { font-size: clamp(28px, 4vw, 40px); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.side { --c: var(--a); --soft: var(--a-soft); display: grid; gap: 12px; align-content: start; min-width: 0; }
+.side.b { --c: var(--b); --soft: var(--b-soft); }
+.src { display: grid; justify-items: center; gap: 4px; padding: 22px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); cursor: pointer; transition: border-color .12s, background .12s; }
+.src:hover { border-color: var(--c); }
+.src .letter { font-family: var(--font-display); font-weight: 800; font-size: 72px; line-height: .9; color: var(--c); }
+.src.active { border-color: var(--c); background: var(--soft); }
+.src .state { font-size: 13px; font-weight: 600; color: var(--muted); }
+.vote { padding: 12px; border-radius: 10px; border: 0; background: var(--c); color: var(--surface); font-weight: 700; cursor: pointer; font-size: 15px; }
+.vote:hover { filter: brightness(1.07); }
+.vote:disabled { opacity: .35; cursor: default; filter: none; }
+.transport { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+.pp { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg); cursor: pointer; display: grid; place-items: center; }
+.pp svg { width: 18px; height: 18px; }
+.scrub { width: 100%; accent-color: var(--ink); }
+.time { font-size: 13px; color: var(--muted); min-width: 92px; text-align: right; }
+.reveal { display: grid; gap: 8px; padding: 10px; border-radius: 10px; background: var(--sunken); text-decoration: none; color: inherit; }
+.reveal img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; display: block; }
+.reveal .who { font-weight: 700; line-height: 1.25; }
+.reveal .tag { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--c); }
+.side.won .reveal { outline: 2px solid var(--win); }
+.side.won .reveal .tag::after { content: " · picked"; color: var(--win); }
+.stage-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.hint { font-size: 13px; color: var(--muted); }
+kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); }
+.btn { padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 600; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.saved { font-size: 13px; color: var(--muted); }
+.saved.ok { color: var(--win); }
+
+.look { position: relative; display: grid; padding: 0; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--sunken); cursor: pointer; }
+.look:hover:not(:disabled) { border-color: var(--c); }
+.look:disabled { cursor: default; }
+.look img { width: 100%; display: block; object-fit: contain; }
+.look.full img { max-height: min(72vh, 900px); aspect-ratio: 900 / 2371; margin: 0 auto; width: auto; max-width: 100%; }
+.look.body img { aspect-ratio: 4 / 3; object-fit: cover; }
+.look .badge { position: absolute; top: 10px; left: 10px; font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1; padding: 4px 10px 2px; border-radius: 6px; background: var(--c); color: var(--surface); }
+.side.won .look { border-color: var(--win); }
+.look-name { font-weight: 700; min-height: 1.5em; }
+
+/* ── Rankings ────────────────────────────────────── */
+.boards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; }
+.board { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 18px 8px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.board-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.board h2 { font-size: 28px; }
+.rows { list-style: none; margin: 0; padding: 0; }
+.row { display: grid; grid-template-columns: 26px 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); }
+.row a { color: inherit; text-decoration: none; min-width: 0; }
+.row a:hover .row-name { text-decoration: underline; }
+.row .n { font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--muted); text-align: right; }
+.row:nth-child(-n+3) .n { color: var(--ink); }
+.row img { width: 44px; height: 33px; object-fit: cover; border-radius: 4px; display: block; background: var(--sunken); }
+.row-name { font-weight: 600; font-size: 14px; line-height: 1.25; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-sub { font-size: 12px; color: var(--muted); }
+.row .score { text-align: right; font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.row .score small { display: block; font-size: 11px; color: var(--muted); }
+.empty { padding: 28px; text-align: center; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted); }
+.method { font-size: 13px; color: var(--muted); max-width: 72ch; }
+
+@media (max-width: 760px) {
+  .detail { grid-template-columns: 1fr; }
+  .detail-full { max-width: 220px; margin: 0 auto; }
+  .ranks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tabs { margin-left: 0; width: 100%; }
+  .src .letter { font-size: 56px; }
+  .pair { gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-inner">
+    <a class="brand" href="#collection">Rank Tyler&#39;s Guitars</a>
+    <nav class="tabs" aria-label="Sections">
+      <a class="tab" href="#collection" data-route="collection">Collection</a>
+      <a class="tab" href="#sound" data-route="sound">Sound test</a>
+      <a class="tab" href="#looks" data-route="looks">Looks test</a>
+      <a class="tab" href="#rankings" data-route="rankings">Rankings</a>
+    </nav>
+  </div>
+</header>
+<main id="app"></main>
+
+<script>
+const GUITARS = [{"id":"amer-strat","nickname":"Stratocaster","make":"Fender","model":"American Standard Stratocaster","series":"American Standard","year":"2002","country":"USA","color":"Black","finish":"Gloss Poly","pickups":{"neck":"Seymour Duncan Antiquity Texas Hot Strat","middle":"Seymour Duncan Antiquity Texas Hot Strat","bridge":"Seymour Duncan Antiquity Texas Hot Strat"},"positions":{"neck":"Neck","middle":"Middle","bridge":"Bridge"},"samples":{"clean-neck":"media/amer-strat/clean-neck.mp4","clean-middle":"media/amer-strat/clean-middle.mp4","clean-bridge":"media/amer-strat/clean-bridge.mp4","dirt-neck":"media/amer-strat/dirt-neck.mp4","dirt-middle":"media/amer-strat/dirt-middle.mp4","dirt-bridge":"media/amer-strat/dirt-bridge.mp4"}},{"id":"amperf-mustang","nickname":"","make":"Fender","model":"American Performer Mustang","series":"American Performer","year":"","country":"USA","color":"Vintage White","finish":"Gloss Poly","pickups":{"neck":"Yosemite Single-Coil Mustang","middle":"","bridge":"Yosemite Single-Coil Mustang"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/amperf-mustang/clean-neck.mp4","clean-middle":"media/amperf-mustang/clean-middle.mp4","clean-bridge":"media/amperf-mustang/clean-bridge.mp4","dirt-neck":"media/amperf-mustang/dirt-neck.mp4","dirt-middle":"media/amperf-mustang/dirt-middle.mp4","dirt-bridge":"media/amperf-mustang/dirt-bridge.mp4"}},{"id":"ampro-jazzmaster","nickname":"American Professional II Jazzmaster","make":"Fender","model":"American Professional II Jazzmaster","series":"American Professional II","year":"2023","country":"USA","color":"Mystic Seafoam Green","finish":"Gloss Nitro","pickups":{"neck":"Seymour Duncan Antiquity Jazzmaster","middle":"","bridge":"Seymour Duncan Antiquity Jazzmaster"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/ampro-jazzmaster/clean-neck.mp4","clean-middle":"media/ampro-jazzmaster/clean-middle.mp4","clean-bridge":"media/ampro-jazzmaster/clean-bridge.mp4","dirt-neck":"media/ampro-jazzmaster/dirt-neck.mp4","dirt-middle":"media/ampro-jazzmaster/dirt-middle.mp4","dirt-bridge":"media/ampro-jazzmaster/dirt-bridge.mp4"}},{"id":"amultra-tele","nickname":"","make":"Fender","model":"American Ultra II Telecaster","series":"American Ultra II","year":"","country":"USA","color":"Sinister Red","finish":"Gloss Poly","pickups":{"neck":"Ultra II Noiseless Vintage Tele","middle":"","bridge":"Ultra II Noiseless Vintage Tele"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/amultra-tele/clean-neck.mp4","clean-middle":"media/amultra-tele/clean-middle.mp4","clean-bridge":"media/amultra-tele/clean-bridge.mp4","dirt-neck":"media/amultra-tele/dirt-neck.mp4","dirt-middle":"media/amultra-tele/dirt-middle.mp4","dirt-bridge":"media/amultra-tele/dirt-bridge.mp4"}},{"id":"blacktop-jag","nickname":"Blacktop Jaguar","make":"Fender","model":"Blacktop Jaguar","series":"Blacktop","year":"2018","country":"Mexico","color":"Seafoam Pearl","finish":"Gloss Poly","pickups":{"neck":"Fralin P-92","middle":"","bridge":"Fralin P-92"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/blacktop-jag/clean-neck.mp4","clean-middle":"media/blacktop-jag/clean-middle.mp4","clean-bridge":"media/blacktop-jag/clean-bridge.mp4","dirt-neck":"media/blacktop-jag/dirt-neck.mp4","dirt-middle":"media/blacktop-jag/dirt-middle.mp4","dirt-bridge":"media/blacktop-jag/dirt-bridge.mp4"}},{"id":"cyclone","nickname":"Squier Paranormal Cyclone","make":"Squier","model":"Paranormal Cyclone","series":"Paranormal","year":"2021","country":"China","color":"Shell Pink","finish":"Gloss Poly","pickups":{"neck":"Fender Vintera '60s Vintage Stratocaster","middle":"Fender Vintera '60s Vintage Stratocaster","bridge":"Fender Vintera '60s Vintage Stratocaster"},"positions":{"neck":"Neck","middle":"Middle","bridge":"Bridge"},"samples":{"clean-neck":"media/cyclone/clean-neck.mp4","clean-middle":"media/cyclone/clean-middle.mp4","clean-bridge":"media/cyclone/clean-bridge.mp4","dirt-neck":"media/cyclone/dirt-neck.mp4","dirt-middle":"media/cyclone/dirt-middle.mp4","dirt-bridge":"media/cyclone/dirt-bridge.mp4"}},{"id":"electricVI","nickname":"Electric VI","make":"Squier","model":"Paranormal Electric VI","series":"Paranormal","year":"2026","country":"Indonesia","color":"Daphne Blue","finish":"Gloss Poly","pickups":{"neck":"Fender-Designed Split-Coil \"VI\"","middle":"","bridge":"Fender-Designed Split-Coil \"VI\""},"positions":{"neck":"Neck","middle":"Neck + Bridge (in phase)","bridge":"Bridge"},"samples":{"clean-neck":"media/electricVI/clean-neck.mp4","clean-middle":"media/electricVI/clean-middle.mp4","clean-bridge":"media/electricVI/clean-bridge.mp4","dirt-neck":"media/electricVI/dirt-neck.mp4","dirt-middle":"media/electricVI/dirt-middle.mp4","dirt-bridge":"media/electricVI/dirt-bridge.mp4"}},{"id":"jagmaster","nickname":"Custom Jagmaster","make":"Squier","model":"Jagmaster","series":"","year":"2004","country":"China","color":"Burgundy Mist Metallic (custom)","finish":"Gloss Nitro","pickups":{"neck":"Seymour Duncan Antiquity II Firebird","middle":"","bridge":"Seymour Duncan Antiquity II Telecaster"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/jagmaster/clean-neck.mp4","clean-middle":"media/jagmaster/clean-middle.mp4","clean-bridge":"media/jagmaster/clean-bridge.mp4","dirt-neck":"media/jagmaster/dirt-neck.mp4","dirt-middle":"media/jagmaster/dirt-middle.mp4","dirt-bridge":"media/jagmaster/dirt-bridge.mp4"}},{"id":"jaguarillo","nickname":"Custom Player Jaguar","make":"Fender","model":"Jaguar","series":"Player","year":"2018","country":"Mexico","color":"Tidepool","finish":"Gloss Poly","pickups":{"neck":"Seymour Duncan Vintage Staggered Strat","middle":"Seymour Duncan Vintage Staggered Strat","bridge":"Seymour Duncan JB Model - Trembucker"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/jaguarillo/clean-neck.mp4","clean-middle":"media/jaguarillo/clean-middle.mp4","clean-bridge":"media/jaguarillo/clean-bridge.mp4","dirt-neck":"media/jaguarillo/dirt-neck.mp4","dirt-middle":"media/jaguarillo/dirt-middle.mp4","dirt-bridge":"media/jaguarillo/dirt-bridge.mp4"}},{"id":"jazzmaster-jr","nickname":"Jazzmaster Junior","make":"Fender","model":"Junior Collection Jazzmaster","series":"Junior Collection","year":"2018","country":"Japan","color":"Burgundy Mist Metallic (custom)","finish":"Gloss Nitro","pickups":{"neck":"Seymour Duncan Antiquity Jazzmaster","middle":"","bridge":"Seymour Duncan Antiquity Jazzmaster"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/jazzmaster-jr/clean-neck.mp4","clean-middle":"media/jazzmaster-jr/clean-middle.mp4","clean-bridge":"media/jazzmaster-jr/clean-bridge.mp4","dirt-neck":"media/jazzmaster-jr/dirt-neck.mp4","dirt-middle":"media/jazzmaster-jr/dirt-middle.mp4","dirt-bridge":"media/jazzmaster-jr/dirt-bridge.mp4"}},{"id":"offset-tele","nickname":"","make":"Squier","model":"Paranormal Offset Telecaster SJ","series":"Paranormal","year":"2024","country":"China","color":"Charcoal Metallic","finish":"Gloss Poly","pickups":{"neck":"Fender-Designed Alnico Single-Coil (Jazzmaster)","middle":"","bridge":"Seymour Duncan STK-T3b Vintage Bridge Stack for Telecaster"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/offset-tele/clean-neck.mp4","clean-middle":"media/offset-tele/clean-middle.mp4","clean-bridge":"media/offset-tele/clean-bridge.mp4","dirt-neck":"media/offset-tele/dirt-neck.mp4","dirt-middle":"media/offset-tele/dirt-middle.mp4","dirt-bridge":"media/offset-tele/dirt-bridge.mp4"}},{"id":"paranormal-nashville","nickname":"Gold Strat","make":"Squier","model":"Paranormal Custom Nashville Stratocaster","series":"Paranormal","year":"","country":"China","color":"Aztec Gold","finish":"Gloss Poly","pickups":{"neck":"Fender-Designed Alnico Single-Coil (Tele neck)","middle":"Fender-Designed Alnico Single-Coil (Strat)","bridge":"Fender-Designed Alnico Single-Coil (Tele bridge)"},"positions":{"neck":"Neck","middle":"Middle","bridge":"Bridge"},"samples":{"clean-neck":"media/paranormal-nashville/clean-neck.mp4","clean-middle":"media/paranormal-nashville/clean-middle.mp4","clean-bridge":"media/paranormal-nashville/clean-bridge.mp4","dirt-neck":"media/paranormal-nashville/dirt-neck.mp4","dirt-middle":"media/paranormal-nashville/dirt-middle.mp4","dirt-bridge":"media/paranormal-nashville/dirt-bridge.mp4"}},{"id":"std-mustang","nickname":"Standard Mustang","make":"Fender","model":"Mustang 90","series":"Offset","year":"2016","country":"Mexico","color":"Burgundy Mist Metallic","finish":"Gloss Poly","pickups":{"neck":"Fender Deluxe Drive Stratocaster","middle":"","bridge":"Fender Deluxe Drive Stratocaster"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/std-mustang/clean-neck.mp4","clean-middle":"media/std-mustang/clean-middle.mp4","clean-bridge":"media/std-mustang/clean-bridge.mp4","dirt-neck":"media/std-mustang/dirt-neck.mp4","dirt-middle":"media/std-mustang/dirt-middle.mp4","dirt-bridge":"media/std-mustang/dirt-bridge.mp4"}},{"id":"supersonic","nickname":"Super-Sonic","make":"Squier","model":"Paranormal Super-Sonic","series":"Paranormal","year":"2020","country":"China","color":"Graphite Metallic","finish":"Gloss Poly","pickups":{"neck":"Seymour Duncan Phat Cat P-90","middle":"","bridge":"Seymour Duncan Phat Cat P-90"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/supersonic/clean-neck.mp4","clean-middle":"media/supersonic/clean-middle.mp4","clean-bridge":"media/supersonic/clean-bridge.mp4","dirt-neck":"media/supersonic/dirt-neck.mp4","dirt-middle":"media/supersonic/dirt-middle.mp4","dirt-bridge":"media/supersonic/dirt-bridge.mp4"}},{"id":"toro","nickname":"Toronado","make":"Squier","model":"Paranormal Toronado","series":"Paranormal","year":"2021","country":"China","color":"Lake Placid Blue","finish":"Gloss Poly","pickups":{"neck":"Seymour Duncan Antiquity II Firebird","middle":"","bridge":"Seymour Duncan Antiquity II Firebird"},"positions":{"neck":"Neck","middle":"Neck + Bridge","bridge":"Bridge"},"samples":{"clean-neck":"media/toro/clean-neck.mp4","clean-middle":"media/toro/clean-middle.mp4","clean-bridge":"media/toro/clean-bridge.mp4","dirt-neck":"media/toro/dirt-neck.mp4","dirt-middle":"media/toro/dirt-middle.mp4","dirt-bridge":"media/toro/dirt-bridge.mp4"}}];
+const BY_ID = Object.fromEntries(GUITARS.map(g => [g.id, g]));
+const POSITIONS = ['neck', 'middle', 'bridge'];
+const TONES = ['clean', 'dirt'];
+const TONE_NAME = { clean: 'Clean', dirt: 'Dirty' };
+const POS_NAME = { neck: 'Neck', middle: 'Middle', bridge: 'Bridge' };
+const CONFIGS = TONES.flatMap(t => POSITIONS.map(p => `${t}-${p}`));
+const configName = c => { const [t, p] = c.split('-'); return `${TONE_NAME[t]} ${POS_NAME[p]}`; };
+const fullName = g => [g.make, g.model].filter(Boolean).join(' ');
+const app = document.getElementById('app');
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content; };
+const fmtTime = s => !isFinite(s) ? '0:00' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const ICON_PLAY = '<svg viewBox="0 0 16 16" class="ico" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 16 16" class="ico" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"/></svg>';
+
+/* ── Votes ───────────────────────────────────────────
+   Votes live in Supabase: one row per head-to-head pick in public.votes, read
+   back as per-pair totals from the public.vote_tallies view. The tally shape
+   used everywhere below is { <category>: { "<idA>~<idB>": [winsA, winsB] } }
+   with pair ids sorted. */
+const SUPABASE = {"url":"https://ycfontqvyprkktayvtqy.supabase.co","anonKey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZm9udHF2eXBya2t0YXl2dHF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjcyOTUsImV4cCI6MjEwNzUwMzI5NX0.SJJ4hBlNpLXjwk75JkGv9lsKP9ETeEDX-MFGwLEiEWY"};
+const store = {
+  server: {},                 // tallies from the last fetch
+  pending: [],                // local votes not yet reflected in `server`
+  status: SUPABASE ? 'connecting' : 'local',  // connecting | live | error | local
+  listeners: new Set(),
+};
+const onStore = fn => { store.listeners.add(fn); return () => store.listeners.delete(fn); };
+const emit = () => store.listeners.forEach(fn => fn());
+
+function pairKey(a, b) { return a < b ? `${a}~${b}` : `${b}~${a}`; }
+function addTo(tally, cat, winner, loser, n = 1) {
+  const cell = ((tally[cat] ??= {})[pairKey(winner, loser)] ??= [0, 0]);
+  cell[winner < loser ? 0 : 1] += n;
+}
+function allTallies() {
+  const local = {};
+  for (const v of store.pending) addTo(local, v.cat, v.winner, v.loser);
+  return [store.server, local];
+}
+
+const api = (path, init = {}) => fetch(`${SUPABASE.url}/rest/v1/${path}`, {
+  ...init,
+  headers: { apikey: SUPABASE.anonKey, Authorization: `Bearer ${SUPABASE.anonKey}`, 'Content-Type': 'application/json', ...init.headers },
+});
+
+let fetching = null;
+async function refresh() {
+  if (!SUPABASE) return;
+  if (fetching) return fetching;
+  const startedAt = Date.now();
+  fetching = (async () => {
+    try {
+      const res = await api('vote_tallies?select=category,winner,loser,n');
+      if (!res.ok) throw new Error(res.status);
+      const tally = {};
+      for (const r of await res.json()) addTo(tally, r.category, r.winner, r.loser, r.n);
+      store.server = tally;
+      // Votes confirmed before this fetch began are now counted in `server`.
+      store.pending = store.pending.filter(v => !(v.savedAt && v.savedAt < startedAt));
+      store.status = 'live';
+    } catch {
+      store.status = 'error';
+    } finally {
+      fetching = null;
+      emit();
+    }
+  })();
+  return fetching;
+}
+
+async function recordVote(cat, winner, loser) {
+  const vote = { cat, winner, loser, savedAt: 0 };
+  store.pending.push(vote);
+  emit();
+  if (!SUPABASE) return;
+  try {
+    const res = await api('votes', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ category: cat, winner, loser }) });
+    if (!res.ok) throw new Error(res.status);
+    vote.savedAt = Date.now();
+    refresh();
+  } catch {
+    store.pending.splice(store.pending.indexOf(vote), 1);
+    store.status = 'error';
+    emit();
+  }
+}
+
+function connect() {
+  refresh();
+  // Pick up other people's votes while the page is open.
+  setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 30000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+}
+
+/* ── Ratings ─────────────────────────────────────────
+   Bradley–Terry strengths fitted with the MM algorithm. Every guitar also
+   plays one win and one loss against an average phantom, which keeps
+   ratings finite and pulls guitars with few votes toward the middle. */
+function matrixFor(cats) {
+  const ids = GUITARS.map(g => g.id);
+  const idx = Object.fromEntries(ids.map((id, i) => [id, i]));
+  const n = ids.length;
+  const W = Array.from({ length: n }, () => new Float64Array(n));
+  for (const t of allTallies())
+    for (const cat of cats)
+      for (const [k, [x, y]] of Object.entries(t[cat] ?? {})) {
+        const [a, b] = k.split('~');
+        if (!(a in idx) || !(b in idx)) continue;
+        W[idx[a]][idx[b]] += x; W[idx[b]][idx[a]] += y;
+      }
+  return { ids, W };
+}
+function rate(cats) {
+  const { ids, W } = matrixFor(cats);
+  const n = ids.length;
+  let p = new Float64Array(n).fill(1);
+  for (let iter = 0; iter < 300; iter++) {
+    const next = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      let wins = 1, denom = 2 / (p[i] + 1);  // phantom: one win, one loss
+      for (let j = 0; j < n; j++) {
+        if (i === j) continue;
+        const games = W[i][j] + W[j][i];
+        wins += W[i][j];
+        if (games) denom += games / (p[i] + p[j]);
+      }
+      next[i] = wins / denom;
+    }
+    p = next;
+  }
+  return ids.map((id, i) => {
+    let w = 0, l = 0;
+    for (let j = 0; j < n; j++) { w += W[i][j]; l += W[j][i]; }
+    return { id, rating: Math.round(1500 + 400 * Math.log10(p[i])), w, l };
+  }).sort((a, b) => b.rating - a.rating || (b.w + b.l) - (a.w + a.l) || fullName(BY_ID[a.id]).localeCompare(fullName(BY_ID[b.id])));
+}
+const BOARD_CATS = {
+  looks: ['looks'],
+  neck: ['clean-neck', 'dirt-neck'], middle: ['clean-middle', 'dirt-middle'], bridge: ['clean-bridge', 'dirt-bridge'],
+};
+function totalVotes(cats) {
+  let n = 0;
+  for (const t of allTallies()) for (const cat of cats) for (const v of Object.values(t[cat] ?? {})) n += v[0] + v[1];
+  return n;
+}
+function pairCount(cat, a, b) {
+  let n = 0; const k = pairKey(a, b);
+  for (const t of allTallies()) { const v = t[cat]?.[k]; if (v) n += v[0] + v[1]; }
+  return n;
+}
+function rankMap() {
+  const out = {};
+  for (const [board, cats] of Object.entries(BOARD_CATS)) {
+    if (!totalVotes(cats)) continue;
+    rate(cats).forEach((r, i) => { (out[r.id] ??= {})[board] = { place: i + 1, ...r }; });
+  }
+  return out;
+}
+
+/* Pick the pair with the fewest votes in this category, with some randomness. */
+let lastPair = '';
+function pickPair(cat, eligible) {
+  const pairs = [];
+  for (let i = 0; i < eligible.length; i++)
+    for (let j = i + 1; j < eligible.length; j++) {
+      const a = eligible[i], b = eligible[j];
+      if (pairKey(a, b) === lastPair && eligible.length > 2) continue;
+      pairs.push([a, b, 1 / Math.pow(1 + pairCount(cat, a, b), 1.5)]);
+    }
+  let r = Math.random() * pairs.reduce((s, p) => s + p[2], 0);
+  let chosen = pairs[pairs.length - 1];
+  for (const p of pairs) { if ((r -= p[2]) <= 0) { chosen = p; break; } }
+  lastPair = pairKey(chosen[0], chosen[1]);
+  return Math.random() < 0.5 ? [chosen[0], chosen[1]] : [chosen[1], chosen[0]];
+}
+
+function savedText() {
+  switch (store.status) {
+    case 'live': return ['ok', 'Votes are saved and count toward the rankings.'];
+    case 'error': return ['', 'Couldn’t reach the vote server, so your last vote may not have saved. Check your connection and try again.'];
+    case 'local': return ['', 'Votes aren’t being saved in this preview.'];
+    default: return ['', 'Connecting…'];
+  }
+}
+
+/* ── Shared audio for the detail page ────────────── */
+const preview = { audio: new Audio(), btn: null, raf: 0 };
+preview.audio.preload = 'none';
+function stopPreview() {
+  preview.audio.pause();
+  cancelAnimationFrame(preview.raf);
+  if (preview.btn) { preview.btn.classList.remove('on'); preview.btn.querySelector('.ico-slot').innerHTML = ICON_PLAY; preview.btn.querySelector('.prog').style.transform = 'scaleX(0)'; }
+  preview.btn = null;
+}
+function togglePreview(btn, src) {
+  if (preview.btn === btn) { stopPreview(); return; }
+  stopPreview();
+  preview.btn = btn;
+  preview.audio.src = src;
+  preview.audio.play().catch(() => {});
+  btn.classList.add('on');
+  btn.querySelector('.ico-slot').innerHTML = ICON_PAUSE;
+  const tick = () => {
+    const a = preview.audio;
+    if (a.duration) btn.querySelector('.prog').style.transform = `scaleX(${a.currentTime / a.duration})`;
+    preview.raf = requestAnimationFrame(tick);
+  };
+  tick();
+}
+preview.audio.addEventListener('ended', stopPreview);
+
+/* ── Views ───────────────────────────────────────── */
+let cleanup = () => {};
+
+function viewCollection() {
+  const node = h(`<section class="view">
+    <div class="view-head">
+      <div><h1>Collection</h1><p>${GUITARS.length} guitars, each recorded clean and dirty on its neck, middle and bridge settings. Open one for specs and samples, or rank them blind in the sound and looks tests.</p></div>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>`);
+  app.replaceChildren(node);
+  const draw = () => {
+    const ranks = rankMap();
+    const votes = totalVotes(Object.values(BOARD_CATS).flat());
+    document.getElementById('stats').innerHTML =
+      `<span><b>${GUITARS.length}</b> guitars</span><span><b>${GUITARS.length * 6}</b> samples</span><span><b>${votes}</b> votes</span>`;
+    document.getElementById('grid').innerHTML = GUITARS.map(g => {
+      const r = ranks[g.id] ?? {};
+      const chips = ['looks', ...POSITIONS].filter(b => r[b]).map(b =>
+        `<span class="chip">${b === 'looks' ? 'Looks' : POS_NAME[b]} <b>#${r[b].place}</b></span>`).join('');
+      return `<a class="card" href="#g-${g.id}">
+        <img src="media/${g.id}/thumb.jpg" alt="${esc(fullName(g))}" loading="lazy" width="640" height="480">
+        <div class="card-body">
+          <div class="card-title">${esc(fullName(g))}</div>
+          <div class="card-sub">${esc([g.year, g.color].filter(Boolean).join(' · '))}</div>
+          ${chips ? `<div class="chips">${chips}</div>` : ''}
+        </div></a>`;
+    }).join('');
+  };
+  draw();
+  return onStore(draw);
+}
+
+function viewDetail(id) {
+  const g = BY_ID[id];
+  if (!g) { location.hash = '#collection'; return () => {}; }
+  const spec = [
+    ['Make', g.make], ['Model', g.model], ['Series', g.series], ['Year', g.year],
+    ['Made in', g.country], ['Colour', g.color], ['Finish', g.finish], ['Nickname', g.nickname],
+  ].filter(([, v]) => v);
+  const pickups = POSITIONS.filter(p => g.pickups[p]).map(p =>
+    `<div><span class="label" style="align-self:center">${POS_NAME[p]}</span><span>${esc(g.pickups[p])}</span></div>`).join('');
+  const sampleRows = POSITIONS.map(p => `
+    <div class="pos">${POS_NAME[p]}${g.positions[p] && g.positions[p] !== POS_NAME[p] ? `<small>${esc(g.positions[p])}</small>` : ''}</div>
+    ${TONES.map(t => g.samples[`${t}-${p}`]
+      ? `<button class="play" data-src="${g.samples[`${t}-${p}`]}" aria-label="Play ${TONE_NAME[t]} ${POS_NAME[p]}"><span class="ico-slot">${ICON_PLAY}</span>${TONE_NAME[t]}<span class="prog"></span></button>`
+      : '<span class="muted">—</span>').join('')}`).join('');
+  const node = h(`<section class="view">
+    <a class="back" href="#collection">← Collection</a>
+    <div class="detail">
+      <img class="detail-full" src="media/${g.id}/full.jpg" alt="${esc(fullName(g))}, full length" width="900" height="2371">
+      <div class="detail-main">
+        <div><div class="label">${esc(g.make)}</div><h1>${esc(g.model)}</h1></div>
+        <dl class="specs">${spec.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+        <div><h2 class="section-title">Rankings</h2><div class="ranks" id="ranks"></div></div>
+        <div><h2 class="section-title">Samples</h2>
+          <div class="samples"><span></span><span class="hdr">Clean</span><span class="hdr">Dirty</span>${sampleRows}</div></div>
+        ${pickups ? `<div><h2 class="section-title">Pickups</h2><div class="pickups">${pickups}</div></div>` : ''}
+        <img class="detail-body" src="media/${g.id}/body.jpg" alt="${esc(fullName(g))}, body close-up" loading="lazy" width="1600" height="2133">
+      </div>
+    </div>
+  </section>`);
+  app.replaceChildren(node);
+  app.querySelectorAll('.play').forEach(b => b.addEventListener('click', () => togglePreview(b, b.dataset.src)));
+  const draw = () => {
+    const r = rankMap()[g.id] ?? {};
+    document.getElementById('ranks').innerHTML = ['looks', ...POSITIONS].map(b => `
+      <div class="rank-tile"><span class="label">${b === 'looks' ? 'Looks' : POS_NAME[b]}</span>
+      <span class="num">${r[b] ? `${r[b].place}<small>/${GUITARS.length}</small>` : '<small>—</small>'}</span>
+      <span class="mono muted" style="font-size:12px">${r[b] ? `${r[b].rating} · ${r[b].w}–${r[b].l}` : 'No votes yet'}</span></div>`).join('');
+  };
+  draw();
+  const off = onStore(draw);
+  return () => { off(); stopPreview(); };
+}
+
+function viewSound() {
+  let mode = 'any';
+  try { mode = localStorage.getItem('pp-sound-mode') || 'any'; } catch {}
+  if (mode !== 'any' && !CONFIGS.includes(mode)) mode = 'any';
+  const node = h(`<section class="view">
+    <div class="view-head">
+      <div><h1>Sound test</h1><p>Two guitars, same setting, names hidden. Switch between A and B as often as you like; playback stays at the same point in the riff. Pick the one you prefer and the names are revealed.</p></div>
+    </div>
+    <div class="seg" id="modes" role="group" aria-label="Setting to test">
+      <button data-mode="any">Any setting</button>
+      ${CONFIGS.map(c => `<button data-mode="${c}">${configName(c)}</button>`).join('')}
+    </div>
+    <div class="stage" id="stage"></div>
+  </section>`);
+  app.replaceChildren(node);
+  const stage = document.getElementById('stage');
+  const audios = { A: new Audio(), B: new Audio() };
+  Object.values(audios).forEach(a => { a.preload = 'auto'; });
+  let round = null, active = 'A', raf = 0;
+
+  const syncModes = () => app.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  app.querySelectorAll('#modes button').forEach(b => b.addEventListener('click', () => {
+    mode = b.dataset.mode;
+    try { localStorage.setItem('pp-sound-mode', mode); } catch {}
+    syncModes(); newRound();
+  }));
+  syncModes();
+
+  function chooseConfig() {
+    if (mode !== 'any') return mode;
+    const weights = CONFIGS.map(c => 1 / (1 + totalVotes([c])));
+    let r = Math.random() * weights.reduce((s, w) => s + w, 0);
+    for (let i = 0; i < CONFIGS.length; i++) if ((r -= weights[i]) <= 0) return CONFIGS[i];
+    return CONFIGS[0];
+  }
+  function newRound() {
+    stopAll();
+    const cfg = chooseConfig();
+    const eligible = GUITARS.filter(g => g.samples[cfg]).map(g => g.id);
+    const [a, b] = pickPair(cfg, eligible);
+    round = { cfg, A: a, B: b, picked: null };
+    audios.A.src = BY_ID[a].samples[cfg];
+    audios.B.src = BY_ID[b].samples[cfg];
+    active = 'A';
+    render();
+  }
+  const playing = () => !audios[active].paused;
+  function stopAll() { Object.values(audios).forEach(a => a.pause()); cancelAnimationFrame(raf); }
+  function setActive(which, autoplay = true) {
+    if (which === active) { if (autoplay && !playing()) play(); return; }
+    const from = audios[active], to = audios[which];
+    const wasPlaying = !from.paused;
+    const t = from.currentTime;
+    from.pause();
+    to.currentTime = to.duration ? Math.min(t, Math.max(0, to.duration - 0.05)) : t;
+    active = which;
+    if (wasPlaying || autoplay) play(); else paint();
+  }
+  function play() { audios[active].play().catch(() => {}); loop(); }
+  function toggle() { playing() ? (audios[active].pause(), paint()) : play(); }
+  function loop() { cancelAnimationFrame(raf); paint(); if (playing()) raf = requestAnimationFrame(loop); }
+  Object.values(audios).forEach(a => a.addEventListener('ended', () => paint()));
+
+  function paint() {
+    if (!round) return;
+    const a = audios[active];
+    stage.querySelectorAll('.src').forEach(el => {
+      const on = el.dataset.which === active;
+      el.classList.toggle('active', on);
+      el.setAttribute('aria-pressed', String(on));
+      el.querySelector('.state').textContent = on ? (playing() ? 'Playing' : 'Selected') : 'Switch';
+    });
+    const pp = stage.querySelector('.pp');
+    if (pp) { pp.innerHTML = playing() ? ICON_PAUSE : ICON_PLAY; pp.setAttribute('aria-label', playing() ? 'Pause' : 'Play'); }
+    const scrub = stage.querySelector('.scrub');
+    if (scrub && document.activeElement !== scrub) { scrub.max = a.duration || 0; scrub.value = a.currentTime; }
+    const time = stage.querySelector('.time');
+    if (time) time.textContent = `${fmtTime(a.currentTime)} / ${fmtTime(a.duration)}`;
+  }
+
+  function vote(which) {
+    if (!round || round.picked) return;
+    round.picked = which;
+    const other = which === 'A' ? 'B' : 'A';
+    recordVote(round.cfg, round[which], round[other]);
+    render();
+  }
+
+  function render() {
+    const [cls, msg] = savedText();
+    const r = round;
+    const sideHtml = (w) => {
+      const g = BY_ID[r[w]];
+      const reveal = r.picked ? `<a class="reveal" href="#g-${g.id}"><span class="tag">${w}</span><img src="media/${g.id}/thumb.jpg" alt=""><span class="who">${esc(fullName(g))}</span><span class="muted" style="font-size:13px">${esc(g.positions[r.cfg.split('-')[1]] || '')}</span></a>` : '';
+      return `<div class="side ${w.toLowerCase()} ${r.picked === w ? 'won' : ''}">
+        <button class="src" data-which="${w}" aria-pressed="false"><span class="letter">${w}</span><span class="state">Switch</span></button>
+        <button class="vote" data-vote="${w}" ${r.picked ? 'disabled' : ''}>Prefer ${w}</button>
+        ${reveal}
+      </div>`;
+    };
+    stage.innerHTML = `
+      <div class="stage-head"><h2>${configName(r.cfg)}</h2><span class="saved ${cls}">${msg}</span></div>
+      <div class="pair">${sideHtml('A')}${sideHtml('B')}</div>
+      <div class="transport">
+        <button class="pp" aria-label="Play">${ICON_PLAY}</button>
+        <input class="scrub" type="range" id="scrub" min="0" step="0.01" value="0" aria-label="Playback position">
+        <span class="time mono">0:00 / 0:00</span>
+      </div>
+      <div class="stage-foot">
+        <span class="hint"><kbd>A</kbd> <kbd>B</kbd> switch · <kbd>Space</kbd> play/pause · <kbd>1</kbd> <kbd>2</kbd> vote · <kbd>N</kbd> next</span>
+        <button class="btn ${r.picked ? 'primary' : ''}" id="next">${r.picked ? 'Next pair →' : 'Skip pair'}</button>
+      </div>`;
+    stage.querySelectorAll('.src').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.which === active) toggle(); else setActive(b.dataset.which);
+    }));
+    stage.querySelectorAll('.vote').forEach(b => b.addEventListener('click', () => vote(b.dataset.vote)));
+    stage.querySelector('.pp').addEventListener('click', toggle);
+    const scrub = stage.querySelector('.scrub');
+    scrub.addEventListener('input', () => { audios[active].currentTime = Number(scrub.value); paint(); });
+    stage.querySelector('#next').addEventListener('click', newRound);
+    Object.values(audios).forEach(a => a.addEventListener('loadedmetadata', paint, { once: true }));
+    paint();
+  }
+
+  const onKey = e => {
+    if (e.target.closest('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'a' || k === 'b') { setActive(k.toUpperCase()); e.preventDefault(); }
+    else if (k === ' ') { toggle(); e.preventDefault(); }
+    else if (k === '1') vote('A');
+    else if (k === '2') vote('B');
+    else if (k === 'n') newRound();
+  };
+  document.addEventListener('keydown', onKey);
+  const off = onStore(() => {
+    const el = stage.querySelector('.saved');
+    if (el) { const [cls, msg] = savedText(); el.className = `saved ${cls}`; el.textContent = msg; }
+  });
+  newRound();
+  return () => { stopAll(); off(); document.removeEventListener('keydown', onKey); Object.values(audios).forEach(a => a.removeAttribute('src')); };
+}
+
+function viewLooks() {
+  let shot = 'full';
+  try { shot = localStorage.getItem('pp-looks-shot') === 'body' ? 'body' : 'full'; } catch {}
+  const node = h(`<section class="view">
+    <div class="view-head">
+      <div><h1>Looks test</h1><p>Two guitars side by side. Pick the one you’d rather look at; the names show after you choose.</p></div>
+      <div class="seg" id="shots" role="group" aria-label="Photo">
+        <button data-shot="full">Full guitar</button><button data-shot="body">Body close-up</button>
+      </div>
+    </div>
+    <div class="stage" id="stage"></div>
+  </section>`);
+  app.replaceChildren(node);
+  const stage = document.getElementById('stage');
+  let round = null;
+  const syncShots = () => app.querySelectorAll('#shots button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.shot === shot)));
+  app.querySelectorAll('#shots button').forEach(b => b.addEventListener('click', () => {
+    shot = b.dataset.shot;
+    try { localStorage.setItem('pp-looks-shot', shot); } catch {}
+    syncShots(); render();
+  }));
+  syncShots();
+
+  function newRound() {
+    const [a, b] = pickPair('looks', GUITARS.map(g => g.id));
+    round = { A: a, B: b, picked: null };
+    render();
+  }
+  function vote(w) {
+    if (!round || round.picked) return;
+    round.picked = w;
+    recordVote('looks', round[w], round[w === 'A' ? 'B' : 'A']);
+    render();
+  }
+  function render() {
+    const [cls, msg] = savedText();
+    const r = round;
+    const side = w => {
+      const g = BY_ID[r[w]];
+      return `<div class="side ${w.toLowerCase()} ${r.picked === w ? 'won' : ''}">
+        <button class="look ${shot}" data-vote="${w}" ${r.picked ? 'disabled' : ''} aria-label="Prefer ${w}">
+          <span class="badge">${w}</span>
+          <img src="media/${g.id}/${shot}.jpg" alt="Guitar ${w}">
+        </button>
+        <div class="look-name">${r.picked ? `<a href="#g-${g.id}" style="color:inherit">${esc(fullName(g))}</a>` : ''}</div>
+      </div>`;
+    };
+    stage.innerHTML = `
+      <div class="stage-head"><h2>Which looks better?</h2><span class="saved ${cls}">${msg}</span></div>
+      <div class="pair">${side('A')}${side('B')}</div>
+      <div class="stage-foot">
+        <span class="hint">Click a guitar or press <kbd>1</kbd> <kbd>2</kbd> · <kbd>N</kbd> next</span>
+        <button class="btn ${r.picked ? 'primary' : ''}" id="next">${r.picked ? 'Next pair →' : 'Skip pair'}</button>
+      </div>`;
+    stage.querySelectorAll('.look').forEach(b => b.addEventListener('click', () => vote(b.dataset.vote)));
+    stage.querySelector('#next').addEventListener('click', newRound);
+  }
+  const onKey = e => {
+    if (e.target.closest('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === '1') vote('A'); else if (k === '2') vote('B'); else if (k === 'n') newRound();
+  };
+  document.addEventListener('keydown', onKey);
+  const off = onStore(() => {
+    const el = stage.querySelector('.saved');
+    if (el) { const [cls, msg] = savedText(); el.className = `saved ${cls}`; el.textContent = msg; }
+  });
+  newRound();
+  return () => { off(); document.removeEventListener('keydown', onKey); };
+}
+
+function viewRankings() {
+  let tone = 'both';
+  try { tone = localStorage.getItem('pp-rank-tone') || 'both'; } catch {}
+  const node = h(`<section class="view">
+    <div class="view-head">
+      <div><h1>Rankings</h1><p>Built from every vote in the sound and looks tests.</p></div>
+      <div class="seg" id="tones" role="group" aria-label="Sound samples counted">
+        <button data-tone="both">Clean + dirty</button><button data-tone="clean">Clean only</button><button data-tone="dirt">Dirty only</button>
+      </div>
+    </div>
+    <div class="boards" id="boards"></div>
+    <p class="method">Ratings come from a Bradley–Terry model fitted to every head-to-head vote, on an Elo-style scale where 1500 is average and a 200-point gap means the higher one wins about three times in four. Guitars with only a few votes stay close to 1500 until more come in. Every “middle” sample counts the same, whether that guitar’s middle setting is a middle pickup or neck and bridge together.</p>
+  </section>`);
+  app.replaceChildren(node);
+  const syncTones = () => app.querySelectorAll('#tones button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tone === tone)));
+  app.querySelectorAll('#tones button').forEach(b => b.addEventListener('click', () => {
+    tone = b.dataset.tone;
+    try { localStorage.setItem('pp-rank-tone', tone); } catch {}
+    syncTones(); draw();
+  }));
+  syncTones();
+  function draw() {
+    const boards = [['looks', 'Looks', ['looks']], ...POSITIONS.map(p => [p, POS_NAME[p],
+      tone === 'both' ? TONES.map(t => `${t}-${p}`) : [`${tone}-${p}`]])];
+    document.getElementById('boards').innerHTML = boards.map(([key, title, cats]) => {
+      const votes = totalVotes(cats);
+      const body = votes ? `<ol class="rows">${rate(cats).map((r, i) => {
+        const g = BY_ID[r.id];
+        return `<li class="row"><span class="n">${i + 1}</span><img src="media/${g.id}/thumb.jpg" alt="" loading="lazy">
+          <a href="#g-${g.id}"><span class="row-name">${esc(fullName(g))}</span><span class="row-sub">${esc(g.color)}</span></a>
+          <span class="score">${r.rating}<small>${r.w}–${r.l}</small></span></li>`;
+      }).join('')}</ol>`
+        : `<div class="empty">No votes yet. ${key === 'looks' ? '<a href="#looks">Take the looks test</a>' : '<a href="#sound">Take the sound test</a>'} to start this board.</div>`;
+      return `<section class="board"><div class="board-head"><h2>${title}</h2><span class="label">${votes} vote${votes === 1 ? '' : 's'}</span></div>${body}</section>`;
+    }).join('');
+  }
+  draw();
+  return onStore(draw);
+}
+
+/* ── Router ──────────────────────────────────────── */
+function route() {
+  cleanup();
+  const hash = location.hash.slice(1) || 'collection';
+  const name = hash.startsWith('g-') ? 'collection' : hash;
+  document.querySelectorAll('.tab').forEach(t => { if (t.dataset.route === name) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
+  if (hash.startsWith('g-')) cleanup = viewDetail(hash.slice(2));
+  else if (hash === 'sound') cleanup = viewSound();
+  else if (hash === 'looks') cleanup = viewLooks();
+  else if (hash === 'rankings') cleanup = viewRankings();
+  else cleanup = viewCollection();
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+route();
+connect();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Original recordings and photos stay local; docs/ holds the web-sized copies.
+guitars/**/*.wav
+guitars/**/*.aup4
+guitars/**/*.jpeg
+guitars/**/sound/masters/
+
+# Local tooling
+.DS_Store
+.claude/
+supabase/.temp/
+supabase/.branches/
+supabase/.db-password

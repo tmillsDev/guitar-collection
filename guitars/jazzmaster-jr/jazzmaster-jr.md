@@ -1,0 +1,24 @@
+---
+id:                   jazzmaster-jr
+nickname:             Jazzmaster Junior
+make:                 Fender
+model:                Junior Collection Jazzmaster
+series:               Junior Collection
+year:                 2018
+country:              Japan
+color:                Burgundy Mist Metallic (custom)
+finish_type:          Gloss Nitro
+
+pickups:
+  neck:               Seymour Duncan Antiquity Jazzmaster
+  middle:
+  bridge:             Seymour Duncan Antiquity Jazzmaster
+
+# Switch position used for each sound sample
+sample_positions:
+  neck:               Neck
+  middle:             Neck + Bridge
+  bridge:             Bridge
+---
+
+# {Make + Model}

@@ -171,6 +171,7 @@ kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border: 
 .board { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 18px 8px; display: grid; gap: 10px; align-content: start; min-width: 0; }
 .board-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
 .board.wide { grid-column: 1 / -1; }
+.filters { display: grid; gap: 8px; justify-items: end; }
 .board.wide .rows { columns: 2 340px; column-gap: 32px; }
 .board.wide .row { break-inside: avoid; }
 .board h2 { font-size: 28px; }
@@ -206,6 +207,7 @@ kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border: 
   .detail-full { max-width: 220px; margin: 0 auto; }
   .ranks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rank-tile.ov { grid-column: 1 / -1; }
+  .filters { justify-items: start; }
   .tabs { margin-left: 0; width: 100%; }
   .src .letter { font-size: 56px; }
   .pair { gap: 10px; }
@@ -253,7 +255,8 @@ const ICON_PAUSE = '<svg viewBox="0 0 16 16" class="ico" aria-hidden="true"><pat
    with pair ids sorted. */
 const SUPABASE = {"url":"https://ycfontqvyprkktayvtqy.supabase.co","anonKey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZm9udHF2eXBya2t0YXl2dHF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjcyOTUsImV4cCI6MjEwNzUwMzI5NX0.SJJ4hBlNpLXjwk75JkGv9lsKP9ETeEDX-MFGwLEiEWY"};
 const store = {
-  server: {},                 // tallies from the last fetch
+  server: {},                 // all-time tallies from the last fetch
+  recent: [],                 // last 7 days of per-pair totals by hour: {category, winner, loser, hour, n}
   pending: [],                // local votes not yet reflected in `server`
   status: SUPABASE ? 'connecting' : 'local',  // connecting | live | error | local
   listeners: new Set(),
@@ -271,6 +274,18 @@ function allTallies() {
   for (const v of store.pending) addTo(local, v.cat, v.winner, v.loser);
   return [store.server, local];
 }
+/* Votes for a ranking period: 'all', 'week' (last 7 days) or 'day' (last 24 hours).
+   Recent periods come from hourly buckets, counting any hour that overlaps the window. */
+const PERIOD_HOURS = { day: 24, week: 24 * 7 };
+const PERIOD_NAME = { day: 'Daily', week: 'Weekly', all: 'All time' };
+function talliesFor(period) {
+  if (period === 'all' || !PERIOD_HOURS[period]) return allTallies();
+  const cutoff = Date.now() - PERIOD_HOURS[period] * 3600e3;
+  const recent = {};
+  for (const r of store.recent)
+    if (Date.parse(r.hour) + 3600e3 > cutoff) addTo(recent, r.category, r.winner, r.loser, r.n);
+  return [recent, allTallies()[1]];
+}
 
 const api = (path, init = {}) => fetch(`${SUPABASE.url}/rest/v1/${path}`, {
   ...init,
@@ -284,11 +299,16 @@ async function refresh() {
   const startedAt = Date.now();
   fetching = (async () => {
     try {
-      const res = await api('vote_tallies?select=category,winner,loser,n');
-      if (!res.ok) throw new Error(res.status);
+      const since = new Date(Date.now() - PERIOD_HOURS.week * 3600e3 - 3600e3).toISOString();
+      const [all, recent] = await Promise.all([
+        api('vote_tallies?select=category,winner,loser,n'),
+        api(`vote_tallies_hourly?select=category,winner,loser,hour,n&hour=gte.${encodeURIComponent(since)}`),
+      ]);
+      if (!all.ok || !recent.ok) throw new Error(all.ok ? recent.status : all.status);
       const tally = {};
-      for (const r of await res.json()) addTo(tally, r.category, r.winner, r.loser, r.n);
+      for (const r of await all.json()) addTo(tally, r.category, r.winner, r.loser, r.n);
       store.server = tally;
+      store.recent = await recent.json();
       // Votes confirmed before this fetch began are now counted in `server`.
       store.pending = store.pending.filter(v => !(v.savedAt && v.savedAt < startedAt));
       store.status = 'live';
@@ -330,12 +350,12 @@ function connect() {
    Bradley–Terry strengths fitted with the MM algorithm. Every guitar also
    plays one win and one loss against an average phantom, which keeps
    ratings finite and pulls guitars with few votes toward the middle. */
-function matrixFor(cats) {
+function matrixFor(cats, tallies = allTallies()) {
   const ids = GUITARS.map(g => g.id);
   const idx = Object.fromEntries(ids.map((id, i) => [id, i]));
   const n = ids.length;
   const W = Array.from({ length: n }, () => new Float64Array(n));
-  for (const t of allTallies())
+  for (const t of tallies)
     for (const cat of cats)
       for (const [k, [x, y]] of Object.entries(t[cat] ?? {})) {
         const [a, b] = k.split('~');
@@ -344,8 +364,8 @@ function matrixFor(cats) {
       }
   return { ids, W };
 }
-function rate(cats) {
-  const { ids, W } = matrixFor(cats);
+function rate(cats, tallies) {
+  const { ids, W } = matrixFor(cats, tallies);
   const n = ids.length;
   let p = new Float64Array(n).fill(1);
   for (let iter = 0; iter < 300; iter++) {
@@ -372,9 +392,9 @@ const BOARD_CATS = {
   looks: ['looks'],
   neck: ['clean-neck', 'dirt-neck'], middle: ['clean-middle', 'dirt-middle'], bridge: ['clean-bridge', 'dirt-bridge'],
 };
-function totalVotes(cats) {
+function totalVotes(cats, tallies = allTallies()) {
   let n = 0;
-  for (const t of allTallies()) for (const cat of cats) for (const v of Object.values(t[cat] ?? {})) n += v[0] + v[1];
+  for (const t of tallies) for (const cat of cats) for (const v of Object.values(t[cat] ?? {})) n += v[0] + v[1];
   return n;
 }
 function pairCount(cat, a, b) {
@@ -389,11 +409,11 @@ function boardCats(board, tone = 'both') {
   if (board === 'looks' || tone === 'both') return BOARD_CATS[board];
   return [`${tone}-${board}`];
 }
-function overall(tone = 'both') {
+function overall(tone = 'both', tallies) {
   const parts = {};
   for (const board of Object.keys(OVERALL_WEIGHTS)) {
     parts[board] = {};
-    rate(boardCats(board, tone)).forEach((r, i) => { parts[board][r.id] = { place: i + 1, rating: r.rating }; });
+    rate(boardCats(board, tone), tallies).forEach((r, i) => { parts[board][r.id] = { place: i + 1, rating: r.rating }; });
   }
   return GUITARS.map(g => {
     const score = Object.entries(OVERALL_WEIGHTS).reduce((s, [b, w]) => s + w * parts[b][g.id].rating, 0);
@@ -577,9 +597,7 @@ function viewDetail(id) {
 }
 
 function viewSound() {
-  let mode = 'any';
-  try { mode = localStorage.getItem('pp-sound-mode') || 'any'; } catch {}
-  if (mode !== 'any' && !CONFIGS.includes(mode)) mode = 'any';
+  let mode = 'any';  // always start on "Any setting" so coverage fills the weakest setting first
   const node = h(`<section class="view">
     <div class="view-head">
       <div><h1>Sound test</h1><p>Two guitars, same setting, names hidden. Switch between A and B as often as you like; playback stays at the same point in the riff. Pick the one you prefer and the names are revealed.</p></div>
@@ -599,7 +617,6 @@ function viewSound() {
   const syncModes = () => app.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
   app.querySelectorAll('#modes button').forEach(b => b.addEventListener('click', () => {
     mode = b.dataset.mode;
-    try { localStorage.setItem('pp-sound-mode', mode); } catch {}
     syncModes(); newRound();
   }));
   syncModes();
@@ -793,17 +810,24 @@ function viewLooks() {
 }
 
 function viewRankings() {
-  let tone = 'both';
+  let tone = 'both', period = 'all';
   try { tone = localStorage.getItem('pp-rank-tone') || 'both'; } catch {}
+  try { period = localStorage.getItem('pp-rank-period') || 'all'; } catch {}
+  if (!PERIOD_NAME[period]) period = 'all';
   const node = h(`<section class="view">
     <div class="view-head">
-      <div><h1>Rankings</h1><p>Built from every vote in the sound and looks tests.</p></div>
-      <div class="seg" id="tones" role="group" aria-label="Sound samples counted">
-        <button data-tone="both">Clean + dirty</button><button data-tone="clean">Clean only</button><button data-tone="dirt">Dirty only</button>
+      <div><h1>Rankings</h1><p id="rank-intro"></p></div>
+      <div class="filters">
+        <div class="seg" id="periods" role="group" aria-label="Time period">
+          <button data-period="day">Daily</button><button data-period="week">Weekly</button><button data-period="all">All time</button>
+        </div>
+        <div class="seg" id="tones" role="group" aria-label="Sound samples counted">
+          <button data-tone="both">Clean + dirty</button><button data-tone="clean">Clean only</button><button data-tone="dirt">Dirty only</button>
+        </div>
       </div>
     </div>
     <div class="boards" id="boards"></div>
-    <p class="method">Ratings come from a Bradley–Terry model fitted to every head-to-head vote, on an Elo-style scale where 1500 is average and a 200-point gap means the higher one wins about three times in four. Guitars with only a few votes stay close to 1500 until more come in. The overall score is the average of a guitar’s looks, neck, middle and bridge ratings, each weighted equally, and follows the clean/dirty filter above. Every “middle” sample counts the same, whether that guitar’s middle setting is a middle pickup or neck and bridge together.</p>
+    <p class="method">Ratings come from a Bradley–Terry model fitted to every head-to-head vote, on an Elo-style scale where 1500 is average and a 200-point gap means the higher one wins about three times in four. Guitars with only a few votes stay close to 1500 until more come in. Daily and Weekly use only votes from the last 24 hours or 7 days, so they show what’s winning lately; with fewer votes they move around more than All time. The overall score is the average of a guitar’s looks, neck, middle and bridge ratings, each weighted equally, and follows the clean/dirty filter above. Every “middle” sample counts the same, whether that guitar’s middle setting is a middle pickup or neck and bridge together.</p>
   </section>`);
   app.replaceChildren(node);
   const syncTones = () => app.querySelectorAll('#tones button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tone === tone)));
@@ -813,27 +837,39 @@ function viewRankings() {
     syncTones(); draw();
   }));
   syncTones();
+  const syncPeriods = () => app.querySelectorAll('#periods button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.period === period)));
+  app.querySelectorAll('#periods button').forEach(b => b.addEventListener('click', () => {
+    period = b.dataset.period;
+    try { localStorage.setItem('pp-rank-period', period); } catch {}
+    syncPeriods(); draw();
+  }));
+  syncPeriods();
   function draw() {
-    const allVotes = totalVotes(['looks', ...POSITIONS.flatMap(p => boardCats(p, tone))]);
+    const T = talliesFor(period);
+    const when = { day: 'in the last 24 hours', week: 'in the last 7 days', all: 'yet' }[period];
+    document.getElementById('rank-intro').textContent = period === 'all'
+      ? 'Built from every vote in the sound and looks tests.'
+      : `Built from votes cast ${when}. Coverage counts stay all-time.`;
+    const allVotes = totalVotes(['looks', ...POSITIONS.flatMap(p => boardCats(p, tone))], T);
     const overallBoard = `<section class="board wide"><div class="board-head"><h2>Overall</h2><span class="label">Looks, neck, middle and bridge · 25% each</span></div>${
-      allVotes ? `<ol class="rows">${overall(tone).map((r, i) => {
+      allVotes ? `<ol class="rows">${overall(tone, T).map((r, i) => {
         const g = BY_ID[r.id];
         const places = Object.keys(OVERALL_WEIGHTS).map(b => `${BOARD_NAME[b]} #${r.parts[b].place}`).join(' · ');
         return `<li class="row"><span class="n">${i + 1}</span><img src="media/${g.id}/thumb.jpg" alt="" loading="lazy">
           <a href="#g-${g.id}"><span class="row-name">${esc(fullName(g))}</span><span class="row-sub">${places}</span></a>
           <span class="score">${r.rating}<small>avg</small></span></li>`;
       }).join('')}</ol>`
-      : `<div class="empty">No votes yet. Take the <a href="#sound">sound test</a> or <a href="#looks">looks test</a> to start the rankings.</div>`}</section>`;
+      : `<div class="empty">No votes ${when}. Take the <a href="#sound">sound test</a> or <a href="#looks">looks test</a> to start the rankings.</div>`}</section>`;
     const boards = ['looks', ...POSITIONS].map(b => [b, BOARD_NAME[b], boardCats(b, tone)]);
     document.getElementById('boards').innerHTML = overallBoard + boards.map(([key, title, cats]) => {
-      const votes = totalVotes(cats);
-      const body = votes ? `<ol class="rows">${rate(cats).map((r, i) => {
+      const votes = totalVotes(cats, T);
+      const body = votes ? `<ol class="rows">${rate(cats, T).map((r, i) => {
         const g = BY_ID[r.id];
         return `<li class="row"><span class="n">${i + 1}</span><img src="media/${g.id}/thumb.jpg" alt="" loading="lazy">
           <a href="#g-${g.id}"><span class="row-name">${esc(fullName(g))}</span><span class="row-sub">${esc(g.color)}</span></a>
           <span class="score">${r.rating}<small>${r.w}–${r.l}</small></span></li>`;
       }).join('')}</ol>`
-        : `<div class="empty">No votes yet. ${key === 'looks' ? '<a href="#looks">Take the looks test</a>' : '<a href="#sound">Take the sound test</a>'} to start this board.</div>`;
+        : `<div class="empty">No votes ${when}. ${key === 'looks' ? '<a href="#looks">Take the looks test</a>' : '<a href="#sound">Take the sound test</a>'} to start this board.</div>`;
       const cover = cats.map(c => {
         const cv = coverage(c);
         return `${cats.length > 1 ? `${TONE_NAME[c.split('-')[0]]} ` : ''}${cv.played}/${cv.total}`;

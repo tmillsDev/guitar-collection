@@ -81,6 +81,8 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px; padding-inli
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip { font-family: var(--font-mono); font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--sunken); color: var(--muted); white-space: nowrap; }
 .chip b { color: var(--ink); font-weight: 500; }
+.chip-ov { background: var(--ink); color: var(--bg); }
+.chip-ov b { color: var(--bg); }
 .stats { display: flex; gap: 8px 20px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
 .stats b { color: var(--ink); font-family: var(--font-mono); font-weight: 500; }
 
@@ -99,7 +101,8 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px; padding-inli
 .section-title { font-size: 24px; margin-bottom: 12px; }
 .pickups { display: grid; gap: 0; border-top: 1px solid var(--line); }
 .pickups div { display: grid; grid-template-columns: 80px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
-.ranks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ranks { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.rank-tile.ov { border-color: var(--ink); }
 .rank-tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 2px; }
 .rank-tile .num { font-family: var(--font-display); font-weight: 800; font-size: 34px; line-height: 1; }
 .rank-tile .num small { font-size: 18px; color: var(--muted); }
@@ -166,7 +169,10 @@ kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border: 
 /* ── Rankings ────────────────────────────────────── */
 .boards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; }
 .board { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 18px 8px; display: grid; gap: 10px; align-content: start; min-width: 0; }
-.board-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.board-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
+.board.wide { grid-column: 1 / -1; }
+.board.wide .rows { columns: 2 340px; column-gap: 32px; }
+.board.wide .row { break-inside: avoid; }
 .board h2 { font-size: 28px; }
 .rows { list-style: none; margin: 0; padding: 0; }
 .row { display: grid; grid-template-columns: 26px 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); }
@@ -186,6 +192,7 @@ kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border: 
   .detail { grid-template-columns: 1fr; }
   .detail-full { max-width: 220px; margin: 0 auto; }
   .ranks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rank-tile.ov { grid-column: 1 / -1; }
   .tabs { margin-left: 0; width: 100%; }
   .src .letter { font-size: 56px; }
   .pair { gap: 10px; }
@@ -362,14 +369,35 @@ function pairCount(cat, a, b) {
   for (const t of allTallies()) { const v = t[cat]?.[k]; if (v) n += v[0] + v[1]; }
   return n;
 }
+/* Overall: a weighted average of the four category ratings. A category with
+   no votes yet rates everyone 1500, so it doesn't move the order. */
+const OVERALL_WEIGHTS = { looks: 0.25, neck: 0.25, middle: 0.25, bridge: 0.25 };
+function boardCats(board, tone = 'both') {
+  if (board === 'looks' || tone === 'both') return BOARD_CATS[board];
+  return [`${tone}-${board}`];
+}
+function overall(tone = 'both') {
+  const parts = {};
+  for (const board of Object.keys(OVERALL_WEIGHTS)) {
+    parts[board] = {};
+    rate(boardCats(board, tone)).forEach((r, i) => { parts[board][r.id] = { place: i + 1, rating: r.rating }; });
+  }
+  return GUITARS.map(g => {
+    const score = Object.entries(OVERALL_WEIGHTS).reduce((s, [b, w]) => s + w * parts[b][g.id].rating, 0);
+    return { id: g.id, rating: Math.round(score), parts: Object.fromEntries(Object.keys(parts).map(b => [b, parts[b][g.id]])) };
+  }).sort((a, b) => b.rating - a.rating || fullName(BY_ID[a.id]).localeCompare(fullName(BY_ID[b.id])));
+}
 function rankMap() {
   const out = {};
   for (const [board, cats] of Object.entries(BOARD_CATS)) {
     if (!totalVotes(cats)) continue;
     rate(cats).forEach((r, i) => { (out[r.id] ??= {})[board] = { place: i + 1, ...r }; });
   }
+  if (totalVotes(Object.values(BOARD_CATS).flat()))
+    overall().forEach((r, i) => { (out[r.id] ??= {}).overall = { place: i + 1, rating: r.rating }; });
   return out;
 }
+const BOARD_NAME = { overall: 'Overall', looks: 'Looks', neck: 'Neck', middle: 'Middle', bridge: 'Bridge' };
 
 /* Pick the pair with the fewest votes in this category, with some randomness. */
 let lastPair = '';
@@ -442,8 +470,8 @@ function viewCollection() {
       `<span><b>${GUITARS.length}</b> guitars</span><span><b>${GUITARS.length * 6}</b> samples</span><span><b>${votes}</b> votes</span>`;
     document.getElementById('grid').innerHTML = GUITARS.map(g => {
       const r = ranks[g.id] ?? {};
-      const chips = ['looks', ...POSITIONS].filter(b => r[b]).map(b =>
-        `<span class="chip">${b === 'looks' ? 'Looks' : POS_NAME[b]} <b>#${r[b].place}</b></span>`).join('');
+      const chips = ['overall', 'looks', ...POSITIONS].filter(b => r[b]).map(b =>
+        `<span class="chip${b === 'overall' ? ' chip-ov' : ''}">${BOARD_NAME[b]} <b>#${r[b].place}</b></span>`).join('');
       return `<a class="card" href="#g-${g.id}">
         <img src="media/${g.id}/thumb.jpg" alt="${esc(fullName(g))}" loading="lazy" width="640" height="480">
         <div class="card-body">
@@ -490,10 +518,10 @@ function viewDetail(id) {
   app.querySelectorAll('.play').forEach(b => b.addEventListener('click', () => togglePreview(b, b.dataset.src)));
   const draw = () => {
     const r = rankMap()[g.id] ?? {};
-    document.getElementById('ranks').innerHTML = ['looks', ...POSITIONS].map(b => `
-      <div class="rank-tile"><span class="label">${b === 'looks' ? 'Looks' : POS_NAME[b]}</span>
+    document.getElementById('ranks').innerHTML = ['overall', 'looks', ...POSITIONS].map(b => `
+      <div class="rank-tile${b === 'overall' ? ' ov' : ''}"><span class="label">${BOARD_NAME[b]}</span>
       <span class="num">${r[b] ? `${r[b].place}<small>/${GUITARS.length}</small>` : '<small>—</small>'}</span>
-      <span class="mono muted" style="font-size:12px">${r[b] ? `${r[b].rating} · ${r[b].w}–${r[b].l}` : 'No votes yet'}</span></div>`).join('');
+      <span class="mono muted" style="font-size:12px">${!r[b] ? 'No votes yet' : b === 'overall' ? `${r[b].rating} avg` : `${r[b].rating} · ${r[b].w}–${r[b].l}`}</span></div>`).join('');
   };
   draw();
   const off = onStore(draw);
@@ -724,7 +752,7 @@ function viewRankings() {
       </div>
     </div>
     <div class="boards" id="boards"></div>
-    <p class="method">Ratings come from a Bradley–Terry model fitted to every head-to-head vote, on an Elo-style scale where 1500 is average and a 200-point gap means the higher one wins about three times in four. Guitars with only a few votes stay close to 1500 until more come in. Every “middle” sample counts the same, whether that guitar’s middle setting is a middle pickup or neck and bridge together.</p>
+    <p class="method">Ratings come from a Bradley–Terry model fitted to every head-to-head vote, on an Elo-style scale where 1500 is average and a 200-point gap means the higher one wins about three times in four. Guitars with only a few votes stay close to 1500 until more come in. The overall score is the average of a guitar’s looks, neck, middle and bridge ratings, each weighted equally, and follows the clean/dirty filter above. Every “middle” sample counts the same, whether that guitar’s middle setting is a middle pickup or neck and bridge together.</p>
   </section>`);
   app.replaceChildren(node);
   const syncTones = () => app.querySelectorAll('#tones button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tone === tone)));
@@ -735,9 +763,18 @@ function viewRankings() {
   }));
   syncTones();
   function draw() {
-    const boards = [['looks', 'Looks', ['looks']], ...POSITIONS.map(p => [p, POS_NAME[p],
-      tone === 'both' ? TONES.map(t => `${t}-${p}`) : [`${tone}-${p}`]])];
-    document.getElementById('boards').innerHTML = boards.map(([key, title, cats]) => {
+    const allVotes = totalVotes(['looks', ...POSITIONS.flatMap(p => boardCats(p, tone))]);
+    const overallBoard = `<section class="board wide"><div class="board-head"><h2>Overall</h2><span class="label">Looks, neck, middle and bridge · 25% each</span></div>${
+      allVotes ? `<ol class="rows">${overall(tone).map((r, i) => {
+        const g = BY_ID[r.id];
+        const places = Object.keys(OVERALL_WEIGHTS).map(b => `${BOARD_NAME[b]} #${r.parts[b].place}`).join(' · ');
+        return `<li class="row"><span class="n">${i + 1}</span><img src="media/${g.id}/thumb.jpg" alt="" loading="lazy">
+          <a href="#g-${g.id}"><span class="row-name">${esc(fullName(g))}</span><span class="row-sub">${places}</span></a>
+          <span class="score">${r.rating}<small>avg</small></span></li>`;
+      }).join('')}</ol>`
+      : `<div class="empty">No votes yet. Take the <a href="#sound">sound test</a> or <a href="#looks">looks test</a> to start the rankings.</div>`}</section>`;
+    const boards = ['looks', ...POSITIONS].map(b => [b, BOARD_NAME[b], boardCats(b, tone)]);
+    document.getElementById('boards').innerHTML = overallBoard + boards.map(([key, title, cats]) => {
       const votes = totalVotes(cats);
       const body = votes ? `<ol class="rows">${rate(cats).map((r, i) => {
         const g = BY_ID[r.id];

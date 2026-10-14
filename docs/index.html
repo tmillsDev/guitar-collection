@@ -185,6 +185,19 @@ kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border: 
 .row-sub { font-size: 12px; color: var(--muted); }
 .row .score { text-align: right; font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
 .row .score small { display: block; font-size: 11px; color: var(--muted); }
+.cover { font-size: 13px; color: var(--muted); }
+.h2h-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.h2h { border-collapse: collapse; width: 100%; font-size: 13px; }
+.h2h th, .h2h td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+.h2h thead th { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.h2h th[scope="row"] { text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--surface); }
+.h2h th[scope="row"] a { color: inherit; text-decoration: none; }
+.h2h th[scope="row"] a:hover { text-decoration: underline; }
+.h2h td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.h2h td.win { color: var(--win); font-weight: 500; }
+.h2h td.loss { color: var(--b); font-weight: 500; }
+.h2h td.none { color: var(--line); }
+.h2h tfoot th, .h2h tfoot td { border-bottom: 0; color: var(--muted); }
 .empty { padding: 28px; text-align: center; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted); }
 .method { font-size: 13px; color: var(--muted); max-width: 72ch; }
 
@@ -399,22 +412,32 @@ function rankMap() {
 }
 const BOARD_NAME = { overall: 'Overall', looks: 'Looks', neck: 'Neck', middle: 'Middle', bridge: 'Bridge' };
 
-/* Pick the pair with the fewest votes in this category, with some randomness. */
-let lastPair = '';
-function pickPair(cat, eligible) {
+/* Coverage: every pair in a category is played once before any pair is
+   played twice, counting everyone's votes. */
+function pairsWithCounts(cat, eligible) {
   const pairs = [];
   for (let i = 0; i < eligible.length; i++)
-    for (let j = i + 1; j < eligible.length; j++) {
-      const a = eligible[i], b = eligible[j];
-      if (pairKey(a, b) === lastPair && eligible.length > 2) continue;
-      pairs.push([a, b, 1 / Math.pow(1 + pairCount(cat, a, b), 1.5)]);
-    }
-  let r = Math.random() * pairs.reduce((s, p) => s + p[2], 0);
-  let chosen = pairs[pairs.length - 1];
-  for (const p of pairs) { if ((r -= p[2]) <= 0) { chosen = p; break; } }
-  lastPair = pairKey(chosen[0], chosen[1]);
-  return Math.random() < 0.5 ? [chosen[0], chosen[1]] : [chosen[1], chosen[0]];
+    for (let j = i + 1; j < eligible.length; j++)
+      pairs.push({ a: eligible[i], b: eligible[j], n: pairCount(cat, eligible[i], eligible[j]) });
+  return pairs;
 }
+function coverage(cat, eligible = GUITARS.map(g => g.id)) {
+  const pairs = pairsWithCounts(cat, eligible);
+  return { played: pairs.filter(p => p.n > 0).length, total: pairs.length, min: Math.min(...pairs.map(p => p.n)) };
+}
+let lastPair = '';
+function pickPair(cat, eligible) {
+  const pairs = pairsWithCounts(cat, eligible);
+  const min = Math.min(...pairs.map(p => p.n));
+  let pool = pairs.filter(p => p.n === min);
+  if (pool.length > 1) pool = pool.filter(p => pairKey(p.a, p.b) !== lastPair);
+  const chosen = pool[Math.floor(Math.random() * pool.length)];
+  lastPair = pairKey(chosen.a, chosen.b);
+  return Math.random() < 0.5 ? [chosen.a, chosen.b] : [chosen.b, chosen.a];
+}
+const coverageText = c => c.played < c.total
+  ? `${c.played} of ${c.total} matchups played`
+  : `All ${c.total} matchups played${c.min > 1 ? ` ${c.min}×` : ''}`;
 
 function savedText() {
   switch (store.status) {
@@ -509,6 +532,9 @@ function viewDetail(id) {
         <div><h2 class="section-title">Rankings</h2><div class="ranks" id="ranks"></div></div>
         <div><h2 class="section-title">Samples</h2>
           <div class="samples"><span></span><span class="hdr">Clean</span><span class="hdr">Dirty</span>${sampleRows}</div></div>
+        <div><h2 class="section-title">Head-to-head</h2>
+          <p class="cover" style="margin:0 0 10px">This guitar’s wins and losses against each of the others. A dash means they haven’t met yet in that category.</p>
+          <div class="h2h-wrap" id="h2h"></div></div>
         ${pickups ? `<div><h2 class="section-title">Pickups</h2><div class="pickups">${pickups}</div></div>` : ''}
         <img class="detail-body" src="media/${g.id}/body.jpg" alt="${esc(fullName(g))}, body close-up" loading="lazy" width="1600" height="2133">
       </div>
@@ -522,6 +548,28 @@ function viewDetail(id) {
       <div class="rank-tile${b === 'overall' ? ' ov' : ''}"><span class="label">${BOARD_NAME[b]}</span>
       <span class="num">${r[b] ? `${r[b].place}<small>/${GUITARS.length}</small>` : '<small>—</small>'}</span>
       <span class="mono muted" style="font-size:12px">${!r[b] ? 'No votes yet' : b === 'overall' ? `${r[b].rating} avg` : `${r[b].rating} · ${r[b].w}–${r[b].l}`}</span></div>`).join('');
+    // Head-to-head: one row per opponent, one column per category.
+    const cols = ['looks', ...CONFIGS];
+    const colName = c => c === 'looks' ? 'Looks' : configName(c);
+    const record = (cat, opp) => {
+      let w = 0, l = 0;
+      for (const t of allTallies()) {
+        const v = t[cat]?.[pairKey(g.id, opp)];
+        if (v) { const mine = g.id < opp ? 0 : 1; w += v[mine]; l += v[1 - mine]; }
+      }
+      return [w, l];
+    };
+    const opponents = GUITARS.filter(o => o.id !== g.id);
+    const met = cols.map(c => opponents.filter(o => record(c, o.id).some(Boolean)).length);
+    document.getElementById('h2h').innerHTML = `<table class="h2h">
+      <thead><tr><th scope="col">Opponent</th>${cols.map(c => `<th scope="col">${colName(c)}</th>`).join('')}</tr></thead>
+      <tbody>${opponents.map(o => `<tr><th scope="row"><a href="#g-${o.id}">${esc(fullName(o))}</a></th>${cols.map(c => {
+        const [w, l] = record(c, o.id);
+        if (!w && !l) return '<td class="none">—</td>';
+        return `<td class="${w > l ? 'win' : l > w ? 'loss' : 'tie'}">${w}–${l}</td>`;
+      }).join('')}</tr>`).join('')}</tbody>
+      <tfoot><tr><th scope="row">Opponents met</th>${met.map(n => `<td>${n}/${opponents.length}</td>`).join('')}</tr></tfoot>
+    </table>`;
   };
   draw();
   const off = onStore(draw);
@@ -556,12 +604,15 @@ function viewSound() {
   }));
   syncModes();
 
+  // "Any setting" goes to whichever setting is furthest behind on coverage.
   function chooseConfig() {
     if (mode !== 'any') return mode;
-    const weights = CONFIGS.map(c => 1 / (1 + totalVotes([c])));
-    let r = Math.random() * weights.reduce((s, w) => s + w, 0);
-    for (let i = 0; i < CONFIGS.length; i++) if ((r -= weights[i]) <= 0) return CONFIGS[i];
-    return CONFIGS[0];
+    const covs = CONFIGS.map(c => ({ c, ...coverage(c, GUITARS.filter(g => g.samples[c]).map(g => g.id)) }));
+    const lowest = Math.min(...covs.map(x => x.min));
+    const behind = covs.filter(x => x.min === lowest);
+    const fewest = Math.min(...behind.map(x => x.played));
+    const pool = behind.filter(x => x.played === fewest);
+    return pool[Math.floor(Math.random() * pool.length)].c;
   }
   function newRound() {
     stopAll();
@@ -629,7 +680,7 @@ function viewSound() {
       </div>`;
     };
     stage.innerHTML = `
-      <div class="stage-head"><h2>${configName(r.cfg)}</h2><span class="saved ${cls}">${msg}</span></div>
+      <div class="stage-head"><div><h2>${configName(r.cfg)}</h2><span class="cover">${coverageText(coverage(r.cfg, GUITARS.filter(g => g.samples[r.cfg]).map(g => g.id)))}</span></div><span class="saved ${cls}">${msg}</span></div>
       <div class="pair">${sideHtml('A')}${sideHtml('B')}</div>
       <div class="transport">
         <button class="pp" aria-label="Play">${ICON_PLAY}</button>
@@ -718,7 +769,7 @@ function viewLooks() {
       </div>`;
     };
     stage.innerHTML = `
-      <div class="stage-head"><h2>Which looks better?</h2><span class="saved ${cls}">${msg}</span></div>
+      <div class="stage-head"><div><h2>Which looks better?</h2><span class="cover">${coverageText(coverage('looks'))}</span></div><span class="saved ${cls}">${msg}</span></div>
       <div class="pair">${side('A')}${side('B')}</div>
       <div class="stage-foot">
         <span class="hint">Click a guitar or press <kbd>1</kbd> <kbd>2</kbd> · <kbd>N</kbd> next</span>
@@ -783,7 +834,12 @@ function viewRankings() {
           <span class="score">${r.rating}<small>${r.w}–${r.l}</small></span></li>`;
       }).join('')}</ol>`
         : `<div class="empty">No votes yet. ${key === 'looks' ? '<a href="#looks">Take the looks test</a>' : '<a href="#sound">Take the sound test</a>'} to start this board.</div>`;
-      return `<section class="board"><div class="board-head"><h2>${title}</h2><span class="label">${votes} vote${votes === 1 ? '' : 's'}</span></div>${body}</section>`;
+      const cover = cats.map(c => {
+        const cv = coverage(c);
+        return `${cats.length > 1 ? `${TONE_NAME[c.split('-')[0]]} ` : ''}${cv.played}/${cv.total}`;
+      }).join(' · ');
+      return `<section class="board"><div class="board-head"><h2>${title}</h2><span class="label">${votes} vote${votes === 1 ? '' : 's'}</span></div>
+        <div class="cover">Matchups played: ${cover}</div>${body}</section>`;
     }).join('');
   }
   draw();
